@@ -6,4 +6,5 @@
     visibility: visible;
     display: block !important;
     border-radius: 15px;
+    margin: 0 auto;
 }
