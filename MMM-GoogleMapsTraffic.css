@@ -8,3 +8,26 @@
     border-radius: 15px;
     margin: 0 auto;
 }
+
+.MMM-GoogleMapsTraffic .travel-list {
+    margin-top: 8px;
+    font-size: 20px;
+    line-height: 1.4;
+}
+
+.MMM-GoogleMapsTraffic .travel-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.MMM-GoogleMapsTraffic .travel-time {
+    color: #fff;
+}
+
+.MMM-GoogleMapsTraffic .travel-time.traffic-moderate {
+    color: #f5c518;
+}
+
+.MMM-GoogleMapsTraffic .travel-time.traffic-heavy {
+    color: #e53935;
+}

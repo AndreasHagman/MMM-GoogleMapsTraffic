@@ -20,7 +20,13 @@ Module.register("MMM-GoogleMapsTraffic", {
         disableDefaultUI: true,
         updateInterval: 900000,
         backgroundColor: 'rgba(0, 0, 0, 0)',
-        markers: []
+        markers: [],
+        routesKey: '',                // Server-side key with Routes API enabled (no referrer restriction)
+        origin: '',                   // Start address for travel times
+        destinations: [],             // [{ name: 'Asker', address: '...' }]
+        travelUpdateInterval: 600000,
+        moderateTrafficRatio: 1.15,   // duration / duration without traffic => yellow
+        heavyTrafficRatio: 1.35       // => red
     },
 
     start: function () {
@@ -38,6 +44,57 @@ Module.register("MMM-GoogleMapsTraffic", {
             this.sendSocketNotification("MMM-GOOGLE_MAPS_TRAFFIC-GET", { style: this.config.styledMapType });
             console.log("Sent periodic update notification");
         }, this.config.updateInterval);
+
+        this.travelTimes = [];
+        if (this.config.routesKey && this.config.origin && this.config.destinations.length > 0) {
+            this.requestTravelTimes();
+            this.travelIntervalId = setInterval(() => {
+                this.requestTravelTimes();
+            }, this.config.travelUpdateInterval);
+        }
+    },
+
+    requestTravelTimes: function () {
+        this.sendSocketNotification("MMM-GOOGLE_MAPS_TRAFFIC-TRAVEL-GET", {
+            key: this.config.routesKey,
+            origin: this.config.origin,
+            destinations: this.config.destinations
+        });
+    },
+
+    // Updates the travel list in place so the map is not recreated.
+    // Looked up in the live DOM because MagicMirror may keep the old element when getDom output is unchanged.
+    renderTravelTimes: function (travelList = document.querySelector(`#${this.identifier} .travel-list`)) {
+        if (!travelList) {
+            return;
+        }
+        travelList.innerHTML = "";
+        this.travelTimes.forEach((travel) => {
+            const row = document.createElement("div");
+            row.className = "travel-row";
+
+            const name = document.createElement("span");
+            name.className = "travel-name";
+            name.textContent = travel.name;
+
+            const time = document.createElement("span");
+            time.className = "travel-time";
+            if (travel.error) {
+                time.textContent = "–";
+            } else {
+                time.textContent = `${Math.round(travel.duration / 60)} min`;
+                const ratio = travel.duration / travel.staticDuration;
+                if (ratio >= this.config.heavyTrafficRatio) {
+                    time.classList.add("traffic-heavy");
+                } else if (ratio >= this.config.moderateTrafficRatio) {
+                    time.classList.add("traffic-moderate");
+                }
+            }
+
+            row.appendChild(name);
+            row.appendChild(time);
+            travelList.appendChild(row);
+        });
     },
 
     getStyles: function () {
@@ -55,11 +112,22 @@ Module.register("MMM-GoogleMapsTraffic", {
     
     
         const wrapper = document.createElement("div");
-        // Use a fixed id (adjust if you plan on multiple instances)
-        wrapper.setAttribute("id", "map");
-        wrapper.className = "GoogleMap";
-        wrapper.style.height = this.config.height;
         wrapper.style.width = this.config.width;
+
+        const mapDiv = document.createElement("div");
+        // Use a fixed id (adjust if you plan on multiple instances)
+        mapDiv.setAttribute("id", "map");
+        mapDiv.className = "GoogleMap";
+        mapDiv.style.height = this.config.height;
+        mapDiv.style.width = this.config.width;
+        wrapper.appendChild(mapDiv);
+
+        if (this.config.destinations.length > 0) {
+            const travelList = document.createElement("div");
+            travelList.className = "travel-list";
+            wrapper.appendChild(travelList);
+            this.renderTravelTimes(travelList);
+        }
 
         // Check if the Google Maps API is already loaded
         if (!document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')) {
@@ -165,6 +233,9 @@ Module.register("MMM-GoogleMapsTraffic", {
                 console.log("Map not initialized, updating DOM");
                 this.updateDom(500);
             }
+        } else if (notification === "MMM-GOOGLE_MAPS_TRAFFIC-TRAVEL-RESPONSE") {
+            this.travelTimes = payload;
+            this.renderTravelTimes();
         }
     }
 });
