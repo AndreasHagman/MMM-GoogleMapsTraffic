@@ -24,7 +24,7 @@ Module.register("MMM-GoogleMapsTraffic", {
         routesKey: '',                // Server-side key with Routes API enabled (no referrer restriction)
         origin: '',                   // Start address for travel times
         destinations: [],             // [{ name: 'Asker', address: '...' }]
-        travelUpdateInterval: 900000,          // Used during active hours (map + travel times)
+        travelUpdateInterval: 600000,          // Used during active hours
         offHoursUpdateInterval: 3600000,       // Used outside active hours to save API calls
         activeHoursStart: 5,                   // Hour (0-23) when active hours begin
         activeHoursEnd: 22,                    // Hour (0-23) when active hours end
