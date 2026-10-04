@@ -24,7 +24,10 @@ Module.register("MMM-GoogleMapsTraffic", {
         routesKey: '',                // Server-side key with Routes API enabled (no referrer restriction)
         origin: '',                   // Start address for travel times
         destinations: [],             // [{ name: 'Asker', address: '...' }]
-        travelUpdateInterval: 600000,
+        travelUpdateInterval: 900000,          // Used during active hours (map + travel times)
+        offHoursUpdateInterval: 3600000,       // Used outside active hours to save API calls
+        activeHoursStart: 5,                   // Hour (0-23) when active hours begin
+        activeHoursEnd: 22,                    // Hour (0-23) when active hours end
         moderateTrafficRatio: 1.15,   // duration / duration without traffic => yellow
         heavyTrafficRatio: 1.35       // => red
     },
@@ -40,18 +43,38 @@ Module.register("MMM-GoogleMapsTraffic", {
         this.sendSocketNotification("MMM-GOOGLE_MAPS_TRAFFIC-GET", { style: this.config.styledMapType });
         console.log("Sent initial notification for style:", this.config.styledMapType);
 
-        this.updateIntervalId = setInterval(() => {
+        this.scheduleUpdate(this.config.updateInterval, () => {
             this.sendSocketNotification("MMM-GOOGLE_MAPS_TRAFFIC-GET", { style: this.config.styledMapType });
             console.log("Sent periodic update notification");
-        }, this.config.updateInterval);
+        });
 
         this.travelTimes = [];
         if (this.config.routesKey && this.config.origin && this.config.destinations.length > 0) {
             this.requestTravelTimes();
-            this.travelIntervalId = setInterval(() => {
-                this.requestTravelTimes();
-            }, this.config.travelUpdateInterval);
+            this.scheduleUpdate(this.config.travelUpdateInterval, () => this.requestTravelTimes());
         }
+    },
+
+    // Runs callback every activeInterval during active hours and every offHoursUpdateInterval otherwise.
+    // A wait never runs past the start of the next period, so the faster rate resumes on time.
+    scheduleUpdate: function (activeInterval, callback) {
+        const now = new Date();
+        const hour = now.getHours();
+        const { activeHoursStart, activeHoursEnd } = this.config;
+        const isActive = hour >= activeHoursStart && hour < activeHoursEnd;
+
+        const nextBoundary = new Date(now);
+        nextBoundary.setHours(isActive ? activeHoursEnd : activeHoursStart, 0, 0, 0);
+        if (nextBoundary <= now) {
+            nextBoundary.setDate(nextBoundary.getDate() + 1);
+        }
+
+        const interval = isActive ? activeInterval : this.config.offHoursUpdateInterval;
+        const delay = Math.min(interval, nextBoundary - now);
+        setTimeout(() => {
+            callback();
+            this.scheduleUpdate(activeInterval, callback);
+        }, delay);
     },
 
     requestTravelTimes: function () {

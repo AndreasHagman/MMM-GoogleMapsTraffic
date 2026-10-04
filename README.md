@@ -75,7 +75,10 @@ var config = {
 | `mapTypeId`          | The map type to display (roadmap, satellite, hybrid, terrain).  <br><br>**Type:** `string` <br> **Default value:** `roadmap`
 | `styledMapType`      | Style of the map. See below for help.<br><br>**Type:** `string`<br> **Possible value:** `standard`, `dark`, `night`, `black` or *custom*<br> **Default value:** `standard`
 | `disableDefaultUI`   | Disable default UI buttons (Zoom and Street View). <br><br>**Type:** `boolean` <br> **Default value:** `true`
-| `updateInterval`     | How often the module should load the map.<br><br>**Type:** `int` in millisecond<br> **Default value:** `900000 (15 mins)`
+| `updateInterval`     | How often the module should refresh the traffic layer during active hours.<br><br>**Type:** `int` in millisecond<br> **Default value:** `900000 (15 mins)`
+| `travelUpdateInterval` | How often travel times are fetched from the Routes API during active hours.<br><br>**Type:** `int` in millisecond<br> **Default value:** `900000 (15 mins)`
+| `offHoursUpdateInterval` | Interval for both refreshes outside active hours, to reduce API usage.<br><br>**Type:** `int` in millisecond<br> **Default value:** `3600000 (1 hour)`
+| `activeHoursStart` / `activeHoursEnd` | Hours (0-23, local time) that define active hours.<br><br>**Type:** `int`<br> **Default value:** `5` / `22`
 | `markers`            | Additional markers in the map as an array. See example.
 | `backgroundColor`    | Backgound behind the map.Can be set to transparent (`'hsla(0, 0%, 0%, 0)'`) or left at black (default).  <br><br>**Type:** `string` <br> **Default value:** `'rgba(0, 0, 0, 0)'`
 
